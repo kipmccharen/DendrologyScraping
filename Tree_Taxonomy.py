@@ -6,6 +6,7 @@ import pandas as pd
 from csv import reader
 from bs4 import BeautifulSoup
 import re 
+import time
 
 def get_tsn(txt):
     r = requests.get(r"https://www.itis.gov/ITISWebService/services/ITISService/searchByScientificName?srchKey={}".format(txt.replace(' ', '_'))).text
@@ -95,29 +96,67 @@ def extract_vt_dendro_data(treeURL):
     output['range'] = ''.join(extratext)
     return output
 
-if __name__ == '__main__':    
-    # tree_file = r"D:\Git\Tree_Family_Images\tree_list.csv"
-    # with open(tree_file) as f:
-    #     tree_list = list(reader(f))
-    # print(tree_list)
-    t = vt_va_trees()
-    #print(t)
-    url = r"http://dendro.cnre.vt.edu/dendrology/syllabus/factsheet.cfm?ID="
-    treedata = []
-    for tree in t:
-        curr_url = url + tree[2]
-        treed = extract_vt_dendro_data(curr_url)
-        
-        if treed != None:
-            tsn = get_tsn(treed['species'])
-            try:
-                hierarchy = get_hierarchy(tsn, treed['species'])
-                treed.update(hierarchy)
-            except:
-                pass
-            # print(treed)
-            # quit()
-            treedata.append(treed)
+def add_pfaf_to_df(src_df, latin_species_col):
+    latin_list = src_df[latin_species_col].tolist()
 
-    df = pd.DataFrame(treedata).drop(['common'], axis=1)
-    df.to_csv('VT_Dendro_data.csv')
+    for i, l in enumerate(latin_list):
+        print(i,l)
+        rem_var = l.split("var.")[0]
+        url = "https://pfaf.org/user/Plant.aspx?LatinName="+rem_var.replace(" ", "+")
+        r = requests.get(url).text
+        soup = BeautifulSoup(r, 'html.parser')
+
+        care = soup.find("table", id="ctl00_ContentPlaceHolder1_tblIcons")
+        care = re.findall(r"title=""(.*)""\/>", str(care))
+        care = [c.replace('"', '') for c in care]
+
+        tbl = soup.find("table", class_="table table-hover table-striped")
+        tree_df = pd.read_html(str(tbl))[0]
+        tree_df = tree_df[[0,1]] #
+        tree_df = tree_df.append({0: latin_species_col, 1: l}, ignore_index=True)
+        tree_df = tree_df.append({0: 'Care', 1: care}, ignore_index=True)
+        tree_df[0] = tree_df[0].apply(lambda x: str(x).replace(" ", "_"))
+        tree_df = tree_df.dropna()
+        tree_df = tree_df.T
+        tree_df.columns = tree_df.iloc[0]
+        tree_df = tree_df[1:]
+        # if i = 0:
+        #     src_df = pd.merge(tree_df, src_df, on=latin_species_col, how='outer')
+        # else:
+        src_df = pd.concat([src_df, tree_df], join='outer', ignore_index=True)
+        #print(len(src_df.columns))
+    
+    return src_df
+
+
+if __name__ == '__main__':    
+    start_time = time.time()
+    # t = vt_va_trees() #get list of trees that grow in VA accorting to Virginia Tech
+    # url = r"http://dendro.cnre.vt.edu/dendrology/syllabus/factsheet.cfm?ID="
+    # treedata = []
+    # for tree in t:
+    #     curr_url = url + tree[2]
+    #     treed = extract_vt_dendro_data(curr_url) #scrape VT's species page
+        
+    #     if treed != None:
+    #         tsn = get_tsn(treed['species']) #get ID according to ITIS
+    #         try:
+    #             hierarchy = get_hierarchy(tsn, treed['species']) #scrape ITIS species taxonomy
+    #             treed.update(hierarchy)
+    #         except:
+    #             pass
+    #         # print(treed)
+    #         # quit()
+    #         treedata.append(treed)
+
+    # df = pd.DataFrame(treedata).drop(['common'], axis=1)
+    # df.to_csv('VT_Dendro_data.csv')
+
+    df = pd.read_csv(r"D:\Git\Tree_Family_Images\VT_Dendro_data.csv")
+    pfaf = add_pfaf_to_df(df, "species") #add practical species data from pfaf
+    pfaf.to_csv(r"D:\Git\Tree_Family_Images\Full_Dendro_Data.csv")
+    print("--- %s seconds ---" % (time.time() - start_time))
+
+#https://pfaf.org/user/Plant.aspx?LatinName=Abies+balsamea
+
+#http://etetoolkit.org/ -> create chart
