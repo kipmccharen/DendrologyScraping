@@ -34,14 +34,23 @@ def getvineyards(parent_url):
             winery['descr'] = descard.find('p').text.strip()
         except:
             pass
-        try:
+        if headersect.findAll('div', attrs={'class':'record-detail__wine-cat-list-item'}):
             winelist = headersect.findAll('div', attrs={'class':'record-detail__wine-cat-list-item'})
             for winetype in winelist:
-                type = winetype.find('span', attrs={'class':'card__heading'}).text
-                tpwines = [x.text.strip() for x in winetype.findall('a', attrs={'class':'detail-list-link'})]
-            winery['wines_{}'.format(type): tpwines]
-        except:
-            pass
+                type = winetype.find('span', attrs={'class':'card__heading'})
+                tpwines = winetype.findall('a')
+                tpwines = [x.text.strip() for x in type]
+                print(tpwines)
+                #tpwines = ]
+                winery['wines_{}'.format(type): tpwines]
+        # try:
+        #     winelist = headersect.findAll('div', attrs={'class':'record-detail__wine-cat-list-item'})
+        #     for winetype in winelist:
+        #         type = winetype.find('span', attrs={'class':'card__heading'}).text
+        #         tpwines = [x.text.strip() for x in winetype.findall('a', attrs={'class':'detail-list-link'})]
+        #     winery['wines_{}'.format(type): tpwines]
+        # except:
+        #     pass
         cards = wsoup.find('div', attrs={'class':'col-xs-12 col-md-4'}).findAll('div', attrs={'class':'card'})
         for card in cards:
             clist = wsoup.findAll('div', attrs={'class':'card__list'})
