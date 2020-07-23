@@ -423,7 +423,7 @@ if __name__ == '__main__':
     start_time = datetime.now() # Let's see how long this runs
     filedir = r"VA_Dendro_data.csv"
 
-    analysis_only = False 
+    analysis_only = True 
 
     if not analysis_only:
 
