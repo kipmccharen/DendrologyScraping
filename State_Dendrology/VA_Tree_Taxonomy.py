@@ -1,5 +1,6 @@
 # CS 5010 Homework: Python and Web Scraper
 # Kip McCharen (cam7cu)
+# Clair Mclafferty (cm2rh)
 
 # This project required extensive exploring of the BeautifulSoup 
 # documentation, and general advice from others online to just stick 
